@@ -31,7 +31,7 @@ library(mlr)
 ######## 1) Load an example database #########################  
 # As child malnutrition is a pretty difficult variable to predict
   # I'd like to present this example using data from Ecuador of 2018 on this topic:
-dir.dt1 = "C:/Users/dvillacreses/Desktop/tmp_xgb_res"
+dir.dt1 = "your/directory"
 dt1 = haven::read_dta(file.path(dir.dt1,"1_BDD_ENS2018_f1_personas.dta")) %>% setDT
 # We have in a separate database information about physical house characteristics
 dt1.aux = haven::read_dta(file.path(dir.dt1,"2_BDD_ENS2018_f1_hogar.dta"),
@@ -116,8 +116,8 @@ dt1 %<>% .[!(prov %in% c(24,90)),]
 # dt1[,f1_s7_6_1] %>% summary
 
 
-######## 8) XGBOOST #########################
-######## 8.0) Initial parameters for hyperparameter tuning #########################
+######## 3) XGBOOST #########################
+######## 3.1) Initial parameters for hyperparameter tuning #########################
 
 ### Total iterations of different hyperparameters
 max.iter.par.tun = 100 %>% as.integer()
@@ -153,9 +153,9 @@ EarlyStop.nR = 10 %>% as.integer()
 ### From here we are going to assume that our database is called: 
   # dt1
 
-######## 8.1) Hyperparameter Tuning with mlr #########################
+######## 3.2) Hyperparameter Tuning with mlr #########################
 
-######### 8.1.1) Hyperparameter Space ~ Hyperparameter "candidates" ##################
+######### 3.2.1) Hyperparameter Space ~ Hyperparameter "candidates" ##################
 xgb_params <- makeParamSet(
   # Learning rate ~ "shrinkage" parameter, prevents overfitting
   makeNumericParam("eta", lower = .01, upper = 0.7),
@@ -200,15 +200,15 @@ xgb_params <- makeParamSet(
   # makeIntegerParam("max_delta_step", lower = 0, upper = 15),
   # makeNumericParam("subsample", lower = 0.3, upper = 0.9)
 
-######### 8.1.2) Hyperparameter Tuning configuration ##################
-##### 8.1.2.1) Total iterations of different hyperparameters & kind of search ######
+######### 3.2.2) Hyperparameter Tuning configuration ##################
+##### 3.2.2.1) Total iterations of different hyperparameters & kind of search ######
 control <- mlr::makeTuneControlRandom(maxit = max.iter.par.tun)
 
-##### 8.1.2.2) Cross Validation configuration ######
+##### 3.2.2.2) Cross Validation configuration ######
 resample_desc <- mlr::makeResampleDesc("RepCV", reps  = reps.par.tun,
                                        folds = folds.par.tun)
 
-##### 8.1.2.3) User defined evaluation metric for xgboost. In this case: F1-Score ######
+##### 3.2.2.3) User defined evaluation metric for xgboost. In this case: F1-Score ######
 ### F1-Score for a given cut point 
 f1.score.dv = function(y_obs, y_pred_response, cut_point){
   tmp1 = data.table(
@@ -291,7 +291,7 @@ m.dv = makeMeasure(id = "F1_score", minimize = F,
                    properties = c("regr", "response"), fun = evalerror.dv2)
 
 
-##### 8.1.4) Here mlr configures which "learner" (and it's basic configuration) is going to use (xgboost, SVM, keras and so on...) ######
+##### 3.2.3) Here mlr configures which "learner" (and it's basic configuration) is going to use (xgboost, SVM, keras and so on...) ######
 xgb_learner <- makeLearner(
   cl = "regr.xgboost",
   objective = "reg:squarederror",
@@ -307,7 +307,7 @@ getLearnerType(xgb_learner)
 getHyperPars(xgb_learner)
 
 
-##### 8.1.6) mlr and xgboost need an special data format, so: ######
+##### 3.2.4) mlr and xgboost need an special data format, so: ######
   ### Just to have an idea of how the original data set looked like 
   dt1[, id.xgb := .I]
 
@@ -340,7 +340,7 @@ dfull = xgb.DMatrix(data = XF,
 dt.F = data.frame(XF %>% data.matrix(), "y" = yF)
 fullTask <- makeRegrTask(data = dt.F, target = "y")
 
-##### 8.1.7) Finally! Let's tune our hyperparameters ########
+##### 3.2.5) Finally! Let's tune our hyperparameters ########
 gc()
 set.seed(1)
 total_cores = parallel::detectCores()
@@ -387,7 +387,7 @@ t1-t0
 
 
 
-#### 8.2) Optimal iterations for xgboost with our hyperparameters ################
+#### 3.3) Optimal iterations for xgboost with our hyperparameters ################
   #tuned_params = readRDS("TunParms_2r10f1k10rs_100it_v1.rds")
 
 # Now we need to know how many iterations our xgboost should do in order
@@ -439,7 +439,7 @@ xgb_cv_res.x1.dt %<>% .[order(-eval_metric_and_sd)]
 best.iter = xgb_cv_res.x1.dt[1,1][[1]]
 best.iter
 
-#### 8.3) Compute xgboost for full database for our optimal # of iterations and hyperparameters ################
+#### 3.4) Compute xgboost for full database for our optimal # of iterations and hyperparameters ################
 # This step could seem useless. And for predictive or CV reasons it is, unless you have some more data
 # were you could want to test its performance.
 # But, I perform this step for three reasons:
@@ -481,7 +481,7 @@ tmp[tmp==max(tmp)]
 # our y-variable on other data (with the same Xs of course):
   #xgb.save(xgb_res_dfull, 'xgb_res_dfull')
 
-#### 8.4) With a simple CV, test again predictive power ################
+#### 3.5) With a simple CV, test again predictive power ################
 
 # If you are as suspicious as me, you would like to perform these computations.
 # What I mean is: what if we did something wrong and xgb.cv and/or our hyperparameter tuning
@@ -579,7 +579,7 @@ gc()
 .eval_measure.res[.rs] %>% unlist %>% summary()
 .eval_measure.res[.fs] %>% unlist %>% summary()
 
-######## 9) Feature importance #########################
+######## 4) Feature importance #########################
 # xgb.importance from xgboost decomposes the percentage that each feature
 # contributes to the selected measure of performance. 
 # This information is also useful for further feature selection.
@@ -592,7 +592,7 @@ model.f.importance %>% dim
   # In this stage you can see that from 78 variables (each category of our
   # categorical variables is a dummy, so a variable itself) only 31 are considered.
 
-######## 10) Interpretable model #########################
+######## 5) Interpretable model #########################
 
 # An xgboost at the end of the day could be expressed as a bunch of simpler models.
 # Paraphrasing David Foster, author of xgboostExplainer package:
@@ -645,17 +645,17 @@ explainer %>% dim
   # We have as much nodes as rows has the explainer object
 
 
-######## 11) Conclusions and remarks #########################
+######## 6) Conclusions and remarks #########################
 # Here you have it, a full walkthrough of xgboost, with parallelized parameter tuning
 # using any personalized "loss function". There's still job to do to leave this
 # script better. But I think you could use it as a power-horse for tons of predicting
 # problems that arise on the day-to-day work, heavily out-performing the predicting power
-# of simpler models and/or xgboost withouth proper tuning.
+# of simpler models and/or xgboost without proper tuning.
 
-# I have been around modelling of variables such as child malnutrition since 2013 using 
+# I have been around modeling of variables such as child malnutrition since 2013 using 
 # an econometric's approach both for prediction and causality's understanding. 
 # And I could assure to you that xgboost out-performs, in the prediction world, 
-# by far any econometric approach I ever tryed, even when based on tons of time on feature computation, 
+# by far any econometric approach I ever tried, even when based on tons of time on feature computation, 
 # thinking, re-thinking and selection, even with simple xgboosts as is the present one.
 # ML-based approaches are also getting more popular within the causality world, with big names
 # such as Dufflo using them. So, it's worth it to any statistician or econometrician
