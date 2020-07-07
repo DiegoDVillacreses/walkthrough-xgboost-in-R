@@ -10,3 +10,5 @@ What I mean by "personalized"? I mean that you could use any loss-function (eval
 * Personalized Cross-Validation to be sure and to explore more about predicting power of the model (fully parallelized).
 * Feature importance computation from where you can easily perform Feature Selection.
 * Computation of an "interpretable model" from our XGBoost (thanks to [`AppliedDataSciencePartners/xgboostExplainer`](https://github.com/AppliedDataSciencePartners/xgboostExplainer)) 
+
+Also uploaded `Health Survey Ecuador - 2018 - as presented by publisher.rar` the used databases in order to reproduce my results if you want. Those are bases from the National Health Survey from Ecuador, survey conducted by the [National Statistical Office](https://www.ecuadorencifras.gob.ec/salud-salud-reproductiva-y-nutricion/).
